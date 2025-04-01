@@ -53,7 +53,7 @@ RUN fix-permissions "/etc/ipython/"
 
 USER ${NB_UID}
 
-# Install pyarrow
+# Install pyarrow, grpcio, pandas
 # NOTE: It's important to ensure compatibility between Pandas versions.
 # The pandas version in this Dockerfile should match the version
 # on which the Pandas API for Spark is built.
@@ -63,11 +63,16 @@ USER ${NB_UID}
 RUN mamba install --yes \
     'grpcio-status' \
     'grpcio' \
-    'pandas=2.2.2' \
     'pyarrow' && \
-    mamba clean --all -f -y && \
-    fix-permissions "${CONDA_DIR}" && \
+    mamba clean --all -f -y
+
+# Run fix-permissions as root to handle potential emulator cache files
+USER root
+RUN fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
+
+# Switch back to the standard user
+USER ${NB_UID}
 
 WORKDIR "${HOME}"
 EXPOSE 4040
